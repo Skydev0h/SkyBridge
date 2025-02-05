@@ -1,0 +1,49 @@
+diff --git a/node_modules/@ton/blueprint/dist/network/createNetworkProvider.js b/node_modules/@ton/blueprint/dist/network/createNetworkProvider.js
+index 2cde096..8302d43 100644
+--- a/node_modules/@ton/blueprint/dist/network/createNetworkProvider.js
++++ b/node_modules/@ton/blueprint/dist/network/createNetworkProvider.js
+@@ -188,9 +188,13 @@ class NetworkProviderImpl {
+     }
+ }
+ _NetworkProviderImpl_tc = new WeakMap(), _NetworkProviderImpl_sender = new WeakMap(), _NetworkProviderImpl_network = new WeakMap(), _NetworkProviderImpl_explorer = new WeakMap(), _NetworkProviderImpl_ui = new WeakMap();
+-async function createMnemonicProvider(client, ui) {
++async function createMnemonicProvider(client, ui, network) {
+     const mnemonic = process.env.WALLET_MNEMONIC ?? '';
+     const walletVersion = process.env.WALLET_VERSION ?? '';
++    let workchain = parseInt(process.env.WALLET_WORKCHAIN ?? '0');
++    if (process.env.WALLET_MC_ON_NETWORK === network) {
++        workchain = -1;
++    }
+     if (mnemonic.length === 0 || walletVersion.length === 0) {
+         throw new Error('Mnemonic deployer was chosen, but env variables WALLET_MNEMONIC and WALLET_VERSION are not set');
+     }
+@@ -200,6 +204,7 @@ async function createMnemonicProvider(client, ui) {
+         client,
+         secretKey: keyPair.secretKey,
+         ui,
++        workchain,
+     });
+ }
+ class NetworkProviderBuilder {
+@@ -240,9 +245,9 @@ class NetworkProviderBuilder {
+     }
+     async chooseSendProvider(network, client) {
+         let deployUsing = (0, utils_1.oneOrZeroOf)({
+-            tonconnect: this.args['--tonconnect'],
+-            deeplink: this.args['--deeplink'],
+-            mnemonic: this.args['--mnemonic'],
++            tonconnect: this.args['--tonconnect'] || process.env.WALLET_PROVIDER === 'tonconnect',
++            deeplink: this.args['--deeplink'] || process.env.WALLET_PROVIDER === 'deeplink',
++            mnemonic: this.args['--mnemonic'] || process.env.WALLET_PROVIDER === 'mnemonic',
+         });
+         if (!deployUsing) {
+             deployUsing = (await this.ui.choose('Which wallet are you using?', [
+@@ -272,7 +277,7 @@ class NetworkProviderBuilder {
+                 provider = new TonConnectProvider_1.TonConnectProvider(new FSStorage_1.FSStorage(storagePath), this.ui);
+                 break;
+             case 'mnemonic':
+-                provider = await createMnemonicProvider(client, this.ui);
++                provider = await createMnemonicProvider(client, this.ui, network);
+                 break;
+             default:
+                 throw new Error('Unknown deploy option');

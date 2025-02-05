@@ -1,0 +1,49 @@
+#!/bin/bash
+
+cd "$(dirname "$0")" || exit
+
+if [ ! -d "node_modules" ]; then
+  npm install
+fi
+
+export LOAD_MNEMONIC_SHH=1
+source load_mnemonic.sh
+
+case "$1" in
+  "testnet")
+    net="--testnet"
+    ;;
+  "fastnet")
+    net="--custom"
+    ;;
+  *)
+    net=""
+    ;;
+esac
+
+case "$2" in
+  "lc")
+    sc="LiteClient"
+    ;;
+  "tc")
+    sc="TransactionChecker"
+    ;;
+  *)
+    sc=""
+    ;;
+esac
+
+if [ -z "$net" ] || [ -z "$sc" ]; then
+  echo "$0 convenience script execution tool"
+  echo "Usage: $0 <network> <contract> <script_name> <script_parameters>"
+  echo "       Value of <contract> can be either lc for LiteClient or tc for TransactionChecker"
+  echo "       Value of <network> can be either testnet or fastnet (where contract resides)"
+  echo "       For <script_name> and <script_parameters> please consult the docs or code of specific script"
+  exit 1
+fi
+
+if [[ "$net" == "--custom" ]]; then
+  net="" # -_-
+fi
+
+npx blueprint run "$sc"/"$3" "$net" -- "${@:4}"

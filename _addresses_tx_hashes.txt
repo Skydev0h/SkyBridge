@@ -1,0 +1,64 @@
+This file contains mandatory "Addresses of smart-contracts deployed in Testnet and Fastnet respectively, with the
+tx_hash of transactions that demonstrate both successful and unsuccessful checks of blocks and transactions."
+
+>>>>> For more details, explorer links and more beautiful page overall, please see docs/Examples.md. <<<<<
+
+N.B. The following Lite Clients are maintained with an up-to-date key block by the following cron tasks:
+./run testnet lc SendNewKeyBlock --nonce=777
+./run fastnet lc SendNewKeyBlock --nonce=777
+
+------------------------------------------------------------------------------------------------------------------------
+--- Contract addresses
+
+LiteClient deployed in testnet: EQBfDq_86clb9dp2fUvhnMBJ3cBAGazk_RogOnGPgZy6GD1E (nonce = 777)
+LiteClient deployed in fastnet: Ef9fabPR9XHYOK2JSq4sLo8YRryK2Od3jghw7BtdrZcWVRgu (nonce = 777)
+
+Simple TransactionChecker deployed in testnet: EQBb2S4hIDNw_ohY07eQRVOS4OaU3pvHqp70fa3DLevHRPAe (extra nonce = None)
+Simple TransactionChecker deployed in fastnet: Ef9b2S4hIDNw_ohY07eQRVOS4OaU3pvHqp70fa3DLevHRA9W (extra nonce = None)
+
+The following TransactionChecker contracts are linked to their corresponding aforementioned LiteClient smart contracts.
+
+Linked TransactionChecker deployed in testnet: EQBfDTCTajRatvIWl_58pUPMAZKbfzXcAlHIgq8gguNFO1L5 (extra nonce = 37)
+Linked TransactionChecker deployed in fastnet: Ef_Rg163Gc_eF18Jbn6AcZUQ4ttS4bVADw3c7stG3L1QpJRL (extra nonce = None)
+
+Extra LiteClient deployed in testnet: EQCgon9W9B7eif_LHqbXDwEtWeaK_WEe6cWQwYhR9TLaKaq4 (nonce = 555)
+(For demonstration of NewKeyBlock transactions without waiting for the actual new keyblock)
+
+------------------------------------------------------------------------------------------------------------------------
+--- Transaction tx_hash values
+
+*** LiteClient NewKeyBlock ***
+
++ Successful application of the older key block:   93b7698152256ea005cff24227cd09b5067f5bffec76bac13023b28774c46e67 (testnet)
++ Successful application of the newer key block:   2443b32057c52cd61ff890ac636d346bf709bab32a9fd94218f2a479cd3c9be8 (testnet)
+- FAILED repeated keyblock application (same ^):   3c1d69c562495f1706413bb7958ddfd6966f8ffe674c93f5af5f9864678d03f9 (testnet)
+- FAILED application of a non-keyblock:            534f0c4d9d6cab9cff3a48d2b26fd16ae416c24947f37ec2c5a3359c8b169057 (testnet)
+
++ Successful application of the next key block:    6B5F35F970F258FDEA28CA6B49E6E88ACA7867D25E6FD8FB51531373EEBFA6AF (FASTNET)
+
+*** LiteClient::CheckBlock ***
+
++ Successful verification of a masterchain block:  c0e559b3f85d386dbf0cd67c6d232f22fee2164097c10cf91f036b040fd3340a (testnet)
+- FAILED verification of an old masterchain block: b1b0067f90bf05958fc4c8f2888baa428afc792f48ee4ea0f24f63a6dbbef7ff (testnet)
+- FAILED verification of MC block from wrong net:  ac5aaeb4a4417374f72e1b346f8a1607e7ff22d1a73f6149f9f07cfdd477122f (testnet)
+
++ Successful verification of a masterchain block:  03DF00B302F633667B4FFA4F609DD83A37D044C9C4B106E642985C4D32656799 (FASTNET)
+- FAILED verification of an old masterchain block: 1D29280720346F20DA26DEED28334BC60B4198D790D99BA5F46CF560CFFBF72B (FASTNET)
+
+*** TransactionChecker::CheckTransaction ***
+
++ Successful verification of a transaction where
+          CheckBlock was called on fastnet above:  ca84476fcc4e51fa8277ea4eb44abe92139cdfd640f201431090649f18b3069d (testnet)
+- FAILED verification (by TransactionChecker) of
+            a valid block, but with broken hints:  50f4dcd9b39297dc82f749b87f4b67311d848ad4e235393e31a70afb800a64d1 (testnet)
+- FAILED verification (by LiteClient) of an old
+         transaction before remembered key block:  ca84476fcc4e51fa8277ea4eb44abe92139cdfd640f201431090649f18b3069d (testnet)
++ Successful verification of a failed transaction
+           above by **SIMPLE** TransactionChecker: 6a37f44f9698b2ffd8a2a3c32b7243f04b6375668b47dea1b5f6e148fbdbfbf9 (testnet)
+
+>>> Verification of transaction from the BASECHAIN (fastnet checks testnet transactions)
+
++ Successful verification of some message
+                     from the testnet basechain:   249D313DBC37B8671F9E190060BEC36F6A65BB776B3B52829889EE3008BD4B9B (FASTNET)
+- FAILED verification of testnet Transaction-
+         Checker deployment (in previous epoch):   E7363A3F5429BDDBD6030DFF0D49F40D2AA2AC1121C28C4AAB7B5E719E05EAA8 (FASTNET)
