@@ -33,6 +33,10 @@ fun verifySignatures(hash: int, signatures: cell, valKeyMap: cell, valTotalWeigh
         // N.B. we cannot exit as soon as we get enough weight because ALL provided sigs must be OK
         (pubKey, signature, found) = dict.uDictGetNext(256, pubKey);
     }
-    val requiredWeight = valTotalWeight * 2 / 3;
-    assert(accWeight >= requiredWeight) throw ERR_NOT_ENOUGH_WEIGHT;
+    // [! PCF !] Proper (strict) comparison without division (Subtle Swallow, Grim Hawk)
+    // See crypto\block\check-proof.cpp:659 for reference (note the inverted condition!)
+    // In practice this would never happen (because weight calculation and precision "outprecises"
+    // both maximum amount of validators and maximum imbalance factor), but for strictly corect
+    // logic, it may be reasonable to use strict comparison and avoid division.
+    assert(3 * accWeight > 2 * valTotalWeight) throw ERR_NOT_ENOUGH_WEIGHT;
 }
