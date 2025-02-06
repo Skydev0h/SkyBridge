@@ -14,7 +14,7 @@ import { getBlockBySeqno, getMCBlockId, stopLCs } from '../utils/raw_lc';
 import { LiteClient } from '../wrappers/LiteClient';
 import '@ton/test-utils';
 import { errors } from '../utils/errors';
-import { OOPSforTESTS } from '../utils/test';
+import { debugFlags } from '../utils/test';
 import { RE_CORRECT, RE_OK } from '../utils/opcodes';
 import { bufferToBigInt } from '../utils/utils';
 import { getKeyBlock, getStepBackForPedanticTest, setSandboxGid, testMatchConfig } from '../utils/sandbox';
@@ -344,7 +344,7 @@ describe('LiteClient tests', () => {
     it('newkeyblock negative: LC with previous keyblock REJECT latest keyblock with proof WITHOUT HEADER', async() => {
         const { sc, keyBlockId: prevId, keyBlockInfo: prevInfo } = await deployWithKeyblock(1, true);
 
-        OOPSforTESTS.keyBlockWrongConfig = true;
+        debugFlags.set('keyBlockWrongConfig');
         const { blockProof, signatures } = await getKeyBlock(0, true);
 
         const res = await sc.sendNewKeyBlock(ms, {
@@ -361,7 +361,7 @@ describe('LiteClient tests', () => {
     it('newkeyblock negative: LC with previous keyblock REJECT latest keyblock with proof WITHOUT P34', async() => {
         const { sc, keyBlockId: prevId, keyBlockInfo: prevInfo } = await deployWithKeyblock(1, true);
 
-        OOPSforTESTS.keyBlockWrongCell = true;
+        debugFlags.set('keyBlockWrongCell');
         const { blockProof, signatures } = await getKeyBlock(0, true);
 
         const res = await sc.sendNewKeyBlock(ms, {

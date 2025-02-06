@@ -17,7 +17,12 @@ fun validateTransactionProof(proof: slice, hints: slice, txHash: int) {
     val depth = hints.getRemainingBitsCount() / 2;
     repeat (depth) {
         val i = hints.loadUint(2);
-        visitor = visitor.beginParse().refN(i); // advance a step -> observe hinted ref
+        var cs = visitor.beginParse();
+        // [! PCF !] Prevent hints from burrowing into transactions. More details below.
+        if (cs.getRemainingRefsCount() == 3) {
+            assert(cs.preloadUint(4) != 7) throw ERR_BURROWING_INTO_TX;
+        }
+        visitor = cs.refN(i); // advance a step -> observe hinted ref
     }
     hints.assertEndOfSlice(); // make sure there is no extra bit at the end
     // right now we must be looking at our transaction OR at a prunned branch. prepare unvirt tools!
@@ -25,3 +30,19 @@ fun validateTransactionProof(proof: slice, hints: slice, txHash: int) {
     assert(observedHash == txHash) throw ERR_TX_HASH_INVALID;
     return isMCBlock;
 }
+
+// [! PCF !] Prevent hints from burrowing into transactions to prevent a possible
+//           transaction forging by creating a transaction cell in a message body
+// Some considerations:
+// Transaction:
+//     begins with $0111 = #7
+//     has exactly 3 refs: ^[ (dangerous) ], state_update and description
+// AccountBlock:
+//     begins with #5 = $0101
+//     can have 1 refs if there are no transactions
+//     can have 2 refs if there is 1 transaction
+//     can have 3 refs if there are 2 or more transactions
+// HashMap / HashMapAug nodes:
+//     can have no more than 2 refs
+// No other cells in tree can be dangerous rather than burrowing into Transaction msgs
+// Solution: check amount of refs, and if equal to 3, check prefix

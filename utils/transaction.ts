@@ -9,6 +9,7 @@ import { Cell } from '@oraichain/tonbridge-utils/build/types';
 import { BlockParser } from '@oraichain/tonbridge-utils/build/blockchain';
 import { Cell as TCell } from '@ton/core';
 import { beginProof } from './proof';
+import { debugFlags } from './test';
 
 export type ObtainTransactionOpts = {
     txacc?: Address,
@@ -186,14 +187,18 @@ export async function makeTransactionProof(tx: TCell, blockId: tonNode_blockIdEx
                 cell.refs[3].refs[2] // constraint allow block -> extra -> account_blocks
         ]);
     */
+    // console.log('txDoNotTrim: ', debugFlags.has('txDoNotTrim'));
+    // noinspection UnnecessaryLocalVariableJS
     const proof = beginProof(cell)
         .include('>0', tx) // keep block header and transaction, but ...
+        .includeTree(debugFlags.has('txDoNotTrim') ? tx : null)
         .requireParent('>0', '>3>2') // constraint allow block header
         // and block -> extra -> account_blocks
-        .postExclude(tx) // prune the transaction afterward! just make sure we have path
+        .postExclude(debugFlags.has('txDoNotTrim') ? null : tx) // prune the transaction afterward! just make sure we have path
         .endProof({byHash: true});
-    // console.log('tx', tx.hash().toString('hex').toUpperCase());
-    // console.log(proof);
+    // console.log('tx', tx);
+    // console.log('hash', tx.hash().toString('hex'));
+    // console.log('proof', proof);
     return proof;
     /*
     // That's how it looked before ProofBuilder

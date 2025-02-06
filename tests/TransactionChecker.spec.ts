@@ -18,6 +18,7 @@ import { tonNode_blockIdExt } from 'ton-lite-client/dist/schema';
 import { prepareShardProof } from '../utils/shard';
 import { RE_CORRECT_EX, RE_INCORRECT_EX, RE_TRANS_FAILED_CHECK, RE_TRANSACTION_CHECKED } from '../utils/opcodes';
 import { errors } from '../utils/errors';
+import { debugFlags } from '../utils/test';
 
 type LocalTxData = {
     tx: Cell;
@@ -44,7 +45,8 @@ enum has { // very semantic. very stupid.
     corruptShardHints,
     corruptMcSigValue,
     replaceMcBlock,
-    replaceTransaction
+    replaceTransaction,
+    hintsBurrowIntoTx
 }
 
 enum failedAt {
@@ -81,6 +83,7 @@ describe('TransactionChecker tests', () => {
     let simp: SandboxContract<TransactionChecker>;
     let wilc: SandboxContract<TransactionChecker>;
     let mctx: LocalTxData, sctx: LocalTxData;
+    let mctxbig: Cell, sctxbig: Cell;
     let simpa: Address;
     let wilca: Address;
     let mead: Address;
@@ -102,6 +105,8 @@ describe('TransactionChecker tests', () => {
         wilc = await deployLinked();
         mctx = await getAnyLastMCBlockTx(true);
         sctx = await getAnyLastSCBlockTx(true);
+        mctxbig = await inflateTxProof(mctx);
+        sctxbig = await inflateTxProof(sctx);
         simpa = simp.address;
         wilca = wilc.address;
         snap = bc.snapshot();
@@ -112,6 +117,10 @@ describe('TransactionChecker tests', () => {
         await bc.loadFrom(snap);
         // registerTransactionCheckerSC(sc as any); // assume linked by default, re-register if necessary
     });
+
+    afterEach(async () => {
+        debugFlags.reset();
+    })
 
     afterAll(async () => {
         stopLCs(); // closing engines does not help. have to use --forceExit
@@ -285,7 +294,6 @@ describe('TransactionChecker tests', () => {
         await testsc(wilc, [has.mcBlock, has.replaceTransaction], errors.ERR_TX_HASH_INVALID, failedAt.TransChk);
     });
 
-
     // -----------------------------------------------------------------------------------------------------------------
 
     it('withlc negative on LC: REJECT MC transaction proof with block and CORRUPTED signatures (normal)', async () => {
@@ -293,6 +301,23 @@ describe('TransactionChecker tests', () => {
         // majority of corruption and other tests of LC contract are done in LC tests
         await testmc(wilc, [has.mcBlock, has.mcSignatures, has.corruptMcSigValue], errors.ERR_INVALID_ROOT_HASH, failedAt.LiteCl);
     });
+
+    it('simple negative: REJECT MC transaction with BURROWING INTO TX with hints', async () => {
+        await testmc(simp, [has.mcBlock, has.hintsBurrowIntoTx], errors.ERR_BURROWING_INTO_TX);
+    });
+
+    it('withlc negative: REJECT MC transaction with BURROWING INTO TX with hints', async () => {
+        await testmc(simp, [has.mcBlock, has.hintsBurrowIntoTx], errors.ERR_BURROWING_INTO_TX);
+    });
+
+    it('simple negative: REJECT SC transaction with BURROWING INTO TX with hints', async () => {
+        await testsc(simp, [has.mcBlock, has.hintsBurrowIntoTx], errors.ERR_BURROWING_INTO_TX);
+    });
+
+    it('withlc negative: REJECT SC transaction with BURROWING INTO TX with hints', async () => {
+        await testsc(simp, [has.mcBlock, has.hintsBurrowIntoTx], errors.ERR_BURROWING_INTO_TX);
+    });
+
 
     // -----------------------------------------------------------------------------------------------------------------
     // #################################################################################################################
@@ -321,6 +346,13 @@ describe('TransactionChecker tests', () => {
             blockSignatures = await prepareBlockSignatures(blockId, true, true);
         }
         return { tx, blockId, proof, hints, blockProof, blockSignatures, blockHash };
+    }
+
+    async function inflateTxProof(data: LocalTxData): Promise<Cell> {
+        debugFlags.set('txDoNotTrim');
+        const newProof = await makeTransactionProof(data.tx, data.blockId);
+        debugFlags.reset();
+        return newProof;
     }
 
     async function getAnyLastSCBlockTx(withBlockProofing: boolean): Promise<LocalTxData> {
@@ -362,7 +394,8 @@ describe('TransactionChecker tests', () => {
                 if (blockHash?.toString() == mctx.blockHash?.toString()) {
                     // try again, make sure MC blocks are different
                     // this is necessary for some corruption tests
-                    continue;
+                    // noinspection ExceptionCaughtLocallyJS
+                    throw new Error('MC block hash is same as proof');
                 }
                 return {
                     tx,
@@ -376,7 +409,8 @@ describe('TransactionChecker tests', () => {
                     shardProofHints,
                 };
             } catch (e: Error | any) {
-                if (!e.message.includes('Could not find transaction') && !e.message.includes('Multiple proof links')) {
+                if (!e.message.includes('Could not find transaction') && !e.message.includes('Multiple proof links')
+                    && !e.message.includes('MC block hash is same as proof')) {
                     throw e;
                     // in practice, proof links should not be a problem because it is always possible to wait until
                     //    the transaction is directly committed into a masterchain without long proof links
@@ -475,6 +509,16 @@ describe('TransactionChecker tests', () => {
         const res = Object.assign({}, txdata);
         if (i.includes(has.corruptTxHints)) {
             res.hints = txdata.hints.map((x) => x ^ 1);
+        }
+        if (i.includes(has.hintsBurrowIntoTx)) {
+            if (res.proof == mctx.proof) {
+                res.proof = mctxbig;
+            } else if (res.proof == sctx.proof) {
+                res.proof = sctxbig;
+            } else {
+                throw new Error('Unknown txdata');
+            }
+            res.hints = txdata.hints.concat([0, 0]);
         }
         if (i.includes(has.corruptShardHints)) {
             res.shardProofHints = txdata.shardProofHints?.map((x) => x ^ 1);

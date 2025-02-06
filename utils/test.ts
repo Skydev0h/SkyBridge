@@ -1,9 +1,32 @@
 import { Address, Cell, toNano } from '@ton/core';
 
-export const OOPSforTESTS = {
-    keyBlockWrongCell: false,
-    keyBlockWrongConfig: false,
-};
+export type DebugFlagTypes = 'keyBlockWrongCell' | 'keyBlockWrongConfig' | 'txDoNotTrim';
+
+class DebugFlags {
+    #flags: Set<DebugFlagTypes> = new Set();
+
+    once(k: DebugFlagTypes) {
+        // console.log(`Check debug flag ONCE ${k}: ${this.#flags.has(k)}`);
+        return this.#flags.delete(k);
+    }
+
+    has(k: DebugFlagTypes) {
+        // console.log(`Check debug flag ${k}: ${this.#flags.has(k)}`);
+        return this.#flags.has(k);
+    }
+
+    set(k: DebugFlagTypes) {
+        // console.log(`Set debug flag ${k}`);
+        this.#flags.add(k);
+    }
+
+    reset() {
+        // console.log(`Reset debug flags`);
+        this.#flags.clear();
+    }
+}
+
+export const debugFlags = new DebugFlags();
 
 export const randomAddress = (wc: number = 0) => {
     const buf = Buffer.alloc(32);

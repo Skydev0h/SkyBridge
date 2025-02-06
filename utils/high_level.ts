@@ -19,7 +19,7 @@ import { args, configure, ismc, lc, lccp, lcsc, np, tccp, tcsc, ui } from './_su
 import { describeError } from './errors';
 import { tonNode_blockIdExt } from 'ton-lite-client/dist/schema';
 import { TransactionChecker } from '../wrappers/TransactionChecker';
-import { OOPSforTESTS } from './test';
+import { debugFlags } from './test';
 
 export function init(np_: NetworkProvider, arglist: string[], what: string) {
     const ui_ = np_.ui();
@@ -317,7 +317,7 @@ export async function prepareKeyBlockData(wantedBlock: number) {
     const blockCell = Cell.fromBoc(keyBlock.data)[0];
     const mcExtra = blockCell.refs[3].refs[3];
 
-    const n34 = OOPSforTESTS.keyBlockWrongConfig ? 32 : 34;
+    const n34 = debugFlags.once('keyBlockWrongConfig') ? 32 : 34;
 
     const cfgRoot = mcExtra.refs[mcExtra.refs.length - 1];
     let par34: Cell | null = null;
@@ -329,16 +329,13 @@ export async function prepareKeyBlockData(wantedBlock: number) {
         ui.write(C.yellowBright('Warning: Failed to read p34 from keyblock config'));
     }
 
-    const path = OOPSforTESTS.keyBlockWrongCell ? '>1' : '>0';
+    const path = debugFlags.once('keyBlockWrongCell') ? '>1' : '>0';
 
     const blockProof =
         beginProof(blockCell)
             .include(path) // block_info (header), strictly up
             .includeTree(par34) // up and down
             .endProof();
-
-    OOPSforTESTS.keyBlockWrongConfig = false;
-    OOPSforTESTS.keyBlockWrongCell = false;
 
     /*
     const blockProof = createMerkleProof(
